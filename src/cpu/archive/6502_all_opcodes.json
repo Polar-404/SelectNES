@@ -3,7 +3,7 @@
     "opcode": "$00",
     "name": "BRK",
     "bytes": 1,
-    "cycles": 0,
+    "cycles": 7,
     "mode": "Implied",
     "unofficial": false
   },
@@ -132,7 +132,7 @@
     "opcode": "$10",
     "name": "BPL",
     "bytes": 2,
-    "cycles": 3,
+    "cycles": 2,
     "mode": "Relative",
     "unofficial": false
   },
@@ -262,7 +262,7 @@
     "name": "JSR",
     "bytes": 3,
     "cycles": 6,
-    "mode": "Implied",
+    "mode": "Absolute",
     "unofficial": false
   },
   {
@@ -617,7 +617,7 @@
     "name": "JMP",
     "bytes": 3,
     "cycles": 3,
-    "mode": "Implied",
+    "mode": "Absolute",
     "unofficial": false
   },
   {
@@ -648,7 +648,7 @@
     "opcode": "$50",
     "name": "BVC",
     "bytes": 2,
-    "cycles": 3,
+    "cycles": 2,
     "mode": "Relative",
     "unofficial": false
   },
@@ -875,7 +875,7 @@
     "name": "JMP",
     "bytes": 3,
     "cycles": 5,
-    "mode": "Implied",
+    "mode": "Absolute",
     "unofficial": false
   },
   {
@@ -1163,7 +1163,7 @@
     "opcode": "$90",
     "name": "BCC",
     "bytes": 2,
-    "cycles": 3,
+    "cycles": 2,
     "mode": "Relative",
     "unofficial": false
   },
@@ -1677,7 +1677,7 @@
     "opcode": "$D0",
     "name": "BNE",
     "bytes": 2,
-    "cycles": 3,
+    "cycles": 2,
     "mode": "Relative",
     "unofficial": false
   },

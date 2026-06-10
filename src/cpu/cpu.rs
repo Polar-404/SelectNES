@@ -69,7 +69,8 @@ pub struct CPU {
     pub vblank: bool,
 
     pub last_opcode: u8,
-    is_halted: bool
+    is_halted: bool,
+    nmi_prev: bool,
 }
 #[derive(Debug, Deserialize)]
 #[allow(non_camel_case_types)]
@@ -104,6 +105,7 @@ impl CPU {
             cycles: 0,
             last_opcode : 0,
             is_halted: false,
+            nmi_prev: false,
         }
     }
 
@@ -178,7 +180,10 @@ impl CPU {
 
         self.program_counter = self.bus.mem_read_u16(0xFFFA);
 
-        self.vblank = false; // Limpa a flag vblank
+        self.cycles += 7;
+        self.bus.tick(7);
+
+        self.vblank = false;
 
     }
 
@@ -203,6 +208,7 @@ impl CPU {
 
         //usually 7 on real hardware
         self.cycles += 7;
+        self.bus.tick(7);
     }
 
     /////writes the program counter to
@@ -942,12 +948,16 @@ impl CPU {
             c(self)
         }
 
-        if self.vblank {
+        let nmi_current = self.bus.nmi_active();
+
+        if nmi_current && !self.nmi_prev {
             print_logs(LogType::Debug, format!("Vblank Triggered [PC:{} | A:{} | X:{} | Y:{} CYC: {}]",
                 self.bus.peek(self.program_counter), self.register_a, self.register_x, self.register_y, self.cycles
             ));
             self.trigger_cpu_nmi();
         }
+        
+        self.nmi_prev = nmi_current;
 
         if self.bus.mapper.borrow_mut().irq_pending() && !self.status.contains(CpuFlags::INTERRUPT_DISABLE) {
             self.trigger_cpu_irq();
@@ -970,6 +980,21 @@ impl CPU {
         };
         
         let mut opcycles = opcode.cycles;
+
+        let mut is_2002_read = false;
+        if opcode.len == 3 && (self.last_opcode == 0x2C || self.last_opcode == 0xAD) {
+            let lo = self.bus.mem_read(self.program_counter);
+            let hi = self.bus.mem_read(self.program_counter.wrapping_add(1));
+            let addr = ((hi as u16) << 8) | (lo as u16);
+            
+            if addr == 0x2002 {
+                is_2002_read = true;
+            }
+        }
+
+        if is_2002_read {
+            self.bus.tick(opcycles);
+        }
 
         match self.last_opcode {
             //LDA
@@ -1164,7 +1189,7 @@ impl CPU {
 
             //LAX
             0xA3 | 0xA7 | 0xAB | 0xAF | 0xB3 | 0xB7 | 0xBF => {
-                opcycles = self.lax(&opcode.mode)
+                opcycles += self.lax(&opcode.mode)
             }
 
             //AXS
@@ -1179,7 +1204,7 @@ impl CPU {
                 opcycles += self.rra(&opcode.mode)
             }
 
-            0x3B | 0x23 | 0x27 | 0x2F | 0x33 | 0x37 | 0x3B | 0x3F => {
+            0x3B | 0x23 | 0x27 | 0x2F | 0x33 | 0x37 | 0x3F => {
                 opcycles += self.rla(&opcode.mode)
             }
 
@@ -1197,13 +1222,16 @@ impl CPU {
             }
         }
 
-        self.cycles += opcycles as u64;
-
-        let tick_result =  self.bus.tick(opcycles);
-
-        if tick_result.nmi {
-            self.vblank = true;
+        if !is_2002_read {
+            self.bus.tick(opcycles); 
+        } else {
+            let extra_cycles = opcycles - opcode.cycles;
+            if extra_cycles > 0 {
+                self.bus.tick(extra_cycles);
+            }
         }
+
+        self.cycles += opcycles as u64;
 
         //increments the program counter accordingly to how many cicles the opcode is specified at the hashmap
         if program_counter_state == self.program_counter {

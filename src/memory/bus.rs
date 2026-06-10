@@ -189,6 +189,10 @@ impl BUS {
         self.mem_write(pos + 1, hi);
     }
 
+    pub fn nmi_active(&self) -> bool {
+        self.ppu.nmi_active()
+    }
+
     pub fn tick(&mut self, cycles: u8) -> TickResult {
         self.ppu.tick(cycles as u16 * 3);
         for _ in 0..cycles {
