@@ -172,7 +172,12 @@ impl PPU {
         match addr & 0x07 {
 
             0x02 => {
-                let status = (self.status.bits() & 0xE0) | (self.data_buffer & 0x1F);
+                let mut status = (self.status.bits() & 0xE0) | (self.data_buffer & 0x1F);
+                
+                if self.scanline == 240 && self.cycle >= 300 {
+                    status |= 0x80;
+                }
+
                 self.status.remove(PpuStatusFlags::VblankFlag);
                 self.w = false;
                 status
@@ -206,7 +211,7 @@ impl PPU {
                 result
             }
 
-            _ => panic!("Program tried to read register ${:?}", (addr & 0x07)),
+            _ => self.data_buffer
 
         }
     }
@@ -266,7 +271,6 @@ impl PPU {
                 }
             }
             0x07 => {
-
                 self.ppubus.write_ppubus(self.v.addr, val);
                 if self.ctrl.contains(PpuCtrlFlags::IncrementVRAM) {
                     self.v.addr = self.v.addr.wrapping_add(32)
@@ -278,6 +282,10 @@ impl PPU {
             _ => panic!("unvalid write addr: {}", addr)
         }
         false
+    }
+
+    pub fn nmi_active(&self) -> bool {
+        self.status.contains(PpuStatusFlags::VblankFlag) && self.ctrl.generate_vblank_nmi()
     }
 
     pub fn tick(&mut self, cycles: u16) -> bool {

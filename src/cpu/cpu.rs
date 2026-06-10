@@ -1,6 +1,8 @@
 // The main (and, as far as I know, only) difference between the Ricoh 2A03 used in the NES and the MOS 6502 is that the 20A4 has integrated audio.
 // Since I haven't implemented audio, this effectively becomes a general-purpose 6502 microchip emulator. (except by the BUS, and NMI)
 
+use serde::Deserialize;
+
 use crate::cpu::opcodes::{self, opcodes_map};
 use crate::engine::console::{LogType, print_logs};
 use crate::memory::bus::BUS; 
@@ -67,9 +69,10 @@ pub struct CPU {
     pub vblank: bool,
 
     pub last_opcode: u8,
-    is_halted: bool
+    is_halted: bool,
+    nmi_prev: bool,
 }
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 #[allow(non_camel_case_types)]
 pub enum AddressingMode {
     Immediate,
@@ -102,6 +105,7 @@ impl CPU {
             cycles: 0,
             last_opcode : 0,
             is_halted: false,
+            nmi_prev: false,
         }
     }
 
@@ -176,7 +180,10 @@ impl CPU {
 
         self.program_counter = self.bus.mem_read_u16(0xFFFA);
 
-        self.vblank = false; // Limpa a flag vblank
+        self.cycles += 7;
+        self.bus.tick(7);
+
+        self.vblank = false;
 
     }
 
@@ -201,6 +208,7 @@ impl CPU {
 
         //usually 7 on real hardware
         self.cycles += 7;
+        self.bus.tick(7);
     }
 
     /////writes the program counter to
@@ -698,14 +706,14 @@ impl CPU {
         let (addr, page_crossed) = self.get_oprand_adress(mode);
         let val = self.bus.mem_read(addr);
 
-        let sum = self.register_a as u16 + val as u16  //+ (((self.status & 0b0000_0001) != 0) as u16); //adiciona 1 se for True e 0 se for False (Rust converte True para 1 e False para 0)
+        let sum = self.register_a as u16 + val as u16
         + (if self.status.contains(CpuFlags::CARRY) {
             1
         } else {
             0
         });
 
-        if sum > 0xff { //seta a carry flag
+        if sum > 0xff {
             self.status.insert(CpuFlags::CARRY); 
         } else {
             self.status.remove(CpuFlags::CARRY);
@@ -713,10 +721,7 @@ impl CPU {
         
         let result = sum as u8;
 
-        if (result ^ val) & (result ^ self.register_a) & 0b1000_0000 != 0 { //seta a overflow flag
-            //usa os operadores logicos de XOR para verificar quais bits sao diferentes e dps verifica com 0b100...
-            //já q é o bit que quer ser verificado(o unico bit q importa)... se for diferente dos outros significa que
-            //ocorreu um overflow, 
+        if (result ^ val) & (result ^ self.register_a) & 0b1000_0000 != 0 {
             self.status.insert(CpuFlags::OVERFLOW);
         } else {
             self.status.remove(CpuFlags::OVERFLOW);
@@ -810,6 +815,127 @@ impl CPU {
         self.program_counter = self.bus.mem_read_u16(0xFFFE);
     }
 
+    // -------------- undocumented / unofficial --------------
+
+    ///(page crosses)
+    fn lax(&mut self, mode: &AddressingMode) -> u8 {
+        let (addr, page_crossed) = self.get_oprand_adress(mode); 
+        let value = self.bus.mem_read(addr);
+
+        self.register_a = value;
+        self.register_x = value;
+
+        self.update_zero_and_negative_flags(value);
+
+        if page_crossed {
+            1
+        } else {
+            0
+        }
+    }
+
+    fn axs(&mut self) {
+        let and_result = self.register_x & self.register_a;
+        let immediate = self.bus.mem_read(self.program_counter);
+
+        self.program_counter = self.program_counter.wrapping_add(1);
+
+        if and_result >= immediate {
+            self.status.insert(CpuFlags::CARRY);
+        } else {
+            self.status.remove(CpuFlags::CARRY);
+        }
+
+        let final_result = and_result.wrapping_sub(immediate);
+        self.register_x = final_result;
+
+        self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    fn slo(&mut self, mode: &AddressingMode) -> u8 {
+        //ASL
+        let (addr, page_crossed) = self.get_oprand_adress(mode);
+        let mut data = self.bus.mem_read(addr);
+        if data >> 7 == 1 {
+            self.status.insert(CpuFlags::CARRY);
+        }
+        else {
+            self.status.remove(CpuFlags::CARRY);
+        }
+        data = data << 1;
+        self.bus.mem_write(addr, data);
+        self.update_zero_and_negative_flags(data);
+        
+        //ORA
+        self.register_a = self.register_a | data;
+        self.update_zero_and_negative_flags(self.register_a);
+
+        if page_crossed { 1 } else { 0 }
+    }
+
+    fn rra(&mut self, mode: &AddressingMode) -> u8 {
+        let (addr, _) = self.get_oprand_adress(mode);
+        let mut val = self.bus.mem_read(addr);
+
+        let carry_in = if self.status.contains(CpuFlags::CARRY) { 1 } else { 0 };
+        let carry_out = val & 1;
+        
+        val = (val >> 1) | (carry_in << 7);
+        
+        if carry_out == 1 {
+            self.status.insert(CpuFlags::CARRY);
+        } else {
+            self.status.remove(CpuFlags::CARRY);
+        }
+
+        self.bus.mem_write(addr, val);
+
+        let sum = self.register_a as u16 + val as u16 + carry_out as u16;
+        let result = sum as u8;
+
+        if (self.register_a ^ result) & (val ^ result) & 0b1000_0000 != 0 {
+            self.status.insert(CpuFlags::OVERFLOW);
+        } else {
+            self.status.remove(CpuFlags::OVERFLOW);
+        }
+
+        if sum > 0xFF {
+            self.status.insert(CpuFlags::CARRY);
+        } else {
+            self.status.remove(CpuFlags::CARRY);
+        }
+
+        self.register_a = result;
+        self.update_zero_and_negative_flags(self.register_a);
+
+        0 
+    }
+
+    fn rla(&mut self, mode: &AddressingMode) -> u8 {
+        let (addr, page_crossed) = self.get_oprand_adress(mode);
+
+        let mut data = self.bus.mem_read(addr);
+        let previous_carry = self.status.contains(CpuFlags::CARRY);
+
+        if data & 0b1000_0000 != 0 {
+            self.status.insert(CpuFlags::CARRY);
+        } else {
+            self.status.remove(CpuFlags::CARRY);
+        }
+        
+        data = data << 1;
+        if previous_carry {
+            data = data | 0b0000_0001
+        }
+
+        self.bus.mem_write(addr, data);
+
+        self.register_a = self.register_a & data;
+        self.update_zero_and_negative_flags(self.register_a);
+
+        if page_crossed { 1 } else { 0 }
+    }
+
     pub fn step(&mut self) -> (bool, u8)  {
         self.step_with_callback(None::<fn(&mut Self)>)
     }
@@ -822,12 +948,16 @@ impl CPU {
             c(self)
         }
 
-        if self.vblank {
+        let nmi_current = self.bus.nmi_active();
+
+        if nmi_current && !self.nmi_prev {
             print_logs(LogType::Debug, format!("Vblank Triggered [PC:{} | A:{} | X:{} | Y:{} CYC: {}]",
                 self.bus.peek(self.program_counter), self.register_a, self.register_x, self.register_y, self.cycles
             ));
             self.trigger_cpu_nmi();
         }
+        
+        self.nmi_prev = nmi_current;
 
         if self.bus.mapper.borrow_mut().irq_pending() && !self.status.contains(CpuFlags::INTERRUPT_DISABLE) {
             self.trigger_cpu_irq();
@@ -850,6 +980,21 @@ impl CPU {
         };
         
         let mut opcycles = opcode.cycles;
+
+        let mut is_2002_read = false;
+        if opcode.len == 3 && (self.last_opcode == 0x2C || self.last_opcode == 0xAD) {
+            let lo = self.bus.mem_read(self.program_counter);
+            let hi = self.bus.mem_read(self.program_counter.wrapping_add(1));
+            let addr = ((hi as u16) << 8) | (lo as u16);
+            
+            if addr == 0x2002 {
+                is_2002_read = true;
+            }
+        }
+
+        if is_2002_read {
+            self.bus.tick(opcycles);
+        }
 
         match self.last_opcode {
             //LDA
@@ -1037,23 +1182,56 @@ impl CPU {
             0x98 => self.transfer_to_accumulator(self.register_y),
 
             //NOP - No Operation
-            0xEA => {
+            0xEA | 0x04 | 0x0C | 0x14 | 0x1A | 0x1C | 0x34 | 0x3A |
+            0x3C | 0x44 | 0x54 | 0x5A | 0x5C | 0x64 | 0x74 | 0x7A | 
+            0x7C | 0x80 | 0x82 | 0x89 | 0xC2 | 0xD4 | 0xDA | 0xDC | 
+            0xE2 | 0xF4 | 0xFA | 0xFC => { }
 
+            //LAX
+            0xA3 | 0xA7 | 0xAB | 0xAF | 0xB3 | 0xB7 | 0xBF => {
+                opcycles += self.lax(&opcode.mode)
+            }
+
+            //AXS
+            0xCB => self.axs(),
+
+            //SLO
+            0x03 | 0x07 | 0x0F | 0x13 | 0x17 | 0x1B | 0x1F => {
+                opcycles += self.slo(&opcode.mode)
+            }
+
+            0x63 | 0x67 | 0x6F | 0x73 | 0x77 | 0x7B | 0x7F => {
+                opcycles += self.rra(&opcode.mode)
+            }
+
+            0x3B | 0x23 | 0x27 | 0x2F | 0x33 | 0x37 | 0x3F => {
+                opcycles += self.rla(&opcode.mode)
             }
 
             //BRK
             0x00 => self.brk(),
 
-            _ => print_logs(LogType::Warning, format!("code: {}", self.last_opcode))
+            _ => { 
+                print_logs(LogType::Warning, format!(
+                    "CPU INSTRUCTION NOT IMPLEMENTED! ( CODE:{:02X}, at PC:{:04X} ), 
+                    CPU is halted to prevent undefined behavior",
+                    self.last_opcode, self.program_counter - 1
+                ));
+                self.is_halted = true;
+                return (true, 0);
+            }
+        }
+
+        if !is_2002_read {
+            self.bus.tick(opcycles); 
+        } else {
+            let extra_cycles = opcycles - opcode.cycles;
+            if extra_cycles > 0 {
+                self.bus.tick(extra_cycles);
+            }
         }
 
         self.cycles += opcycles as u64;
-
-        let tick_result =  self.bus.tick(opcycles);
-
-        if tick_result.nmi {
-            self.vblank = true;
-        }
 
         //increments the program counter accordingly to how many cicles the opcode is specified at the hashmap
         if program_counter_state == self.program_counter {
