@@ -243,6 +243,7 @@ impl Mapper for InesMapper004 {
                 }
                 //IRQ reload ($C001-$DFFF, odd)
                 else {
+                    self.irq_counter = 0;
                     self.irq_reload = true;
                 }
             }
@@ -316,7 +317,7 @@ impl Mapper for InesMapper004 {
             }
             self.a12_low_counter = 0;
         }
-        
+
         self.last_a12 = a12;
     }
 }

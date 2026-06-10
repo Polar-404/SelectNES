@@ -11,6 +11,13 @@ pub fn render_settings(settings: &mut EmulatorConfig, ui: &mut egui_dock::egui::
     ui.menu_button("Audio", |ui| {
          ui.add(egui::Slider::new(&mut settings.volume, 0.0_f32..=200.0_f32))
     });
+
+    ui.separator();
+
+    ui.horizontal(|ui| {
+        ui.label("Theme: "); 
+        egui::global_theme_preference_switch(ui);
+    });
 }
 
 fn change_palette(settings: &mut EmulatorConfig, ui: &mut egui_dock::egui::Ui) {
