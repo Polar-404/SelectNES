@@ -346,6 +346,7 @@ pub fn load_rom_from_file(path: &Path) -> Result<Rc<RefCell<dyn Mapper>>, Box<dy
         3 =>    Ok(wrap_in_pointers(mappers::InesMapper003::new(prg_rom_data, chr_rom_data, mirroring_type, mapper_save_path))),
         4 =>    Ok(wrap_in_pointers(mappers::InesMapper004::new(prg_rom_data, chr_rom_data, mirroring_type, GameSave::new(path)))),
         9 =>    Ok(wrap_in_pointers(mappers::InesMapper009::new(prg_rom_data, chr_rom_data, mirroring_type, mapper_save_path))),
+        10 =>   Ok(wrap_in_pointers(mappers::InesMapper010::new(prg_rom_data, chr_rom_data, mirroring_type, mapper_save_path))),
         163 =>  Ok(wrap_in_pointers(mappers::InesMapper163::new(prg_rom_data, chr_rom_data, mirroring_type, GameSave::new(path)))),
 
         _ => Err(format!("Mapper {} is not supported yet", mapper_match).into())
