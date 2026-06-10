@@ -1,9 +1,16 @@
+use crate::memory::game_save::GameSave;
+
 #[derive(Clone, Copy, Debug)]
 pub enum Mirroring {
     Vertical,
     Horizontal,
     SingleScreenLower,
     SingleScreenUpper
+}
+
+pub enum CpuRam {
+    Volatile([u8; 0x2000]),
+    Persistent(GameSave),
 }
 
 /// A memory mapper that abstracts over different NES cartridge board configurations.
