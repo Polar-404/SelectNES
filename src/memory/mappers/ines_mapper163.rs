@@ -1,4 +1,4 @@
-use crate::engine::console::{LogType, print_logs};
+use crate::engine::terminal::print_terminal::{LogType, print_logs};
 use crate::memory::mapper_base::*;
 
 use crate::memory::game_save::GameSave;

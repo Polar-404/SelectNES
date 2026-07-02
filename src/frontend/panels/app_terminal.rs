@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 
-use crate::engine::{config::EmulatorConfig, console::{LogType, TERMINAL}};
+use crate::engine::{config::EmulatorConfig, terminal::print_terminal::{LogType, TERMINAL}};
 use egui::{Color32, RichText, ScrollArea, Ui};
 
 
@@ -11,13 +11,13 @@ pub fn render_terminal(settings: &mut EmulatorConfig, ui: &mut Ui) {
 
     ui.horizontal(|ui| {
         if ui.checkbox(show_info, "Info").changed() {
-            crate::engine::console::LOG_INFO_ENABLED.store(*show_info, Ordering::Relaxed);
+            crate::engine::terminal::print_terminal::LOG_INFO_ENABLED.store(*show_info, Ordering::Relaxed);
         }
         if ui.checkbox(show_warning, "Warning").changed() {
-            crate::engine::console::LOG_WARNING_ENABLED.store(*show_warning, Ordering::Relaxed);
+            crate::engine::terminal::print_terminal::LOG_WARNING_ENABLED.store(*show_warning, Ordering::Relaxed);
         }
         if ui.checkbox(show_debug, "Debug").changed() {
-            crate::engine::console::LOG_DEBUG_ENABLED.store(*show_debug, Ordering::Relaxed);
+            crate::engine::terminal::print_terminal::LOG_DEBUG_ENABLED.store(*show_debug, Ordering::Relaxed);
         }
 
         if ui.button("Clear").clicked() {

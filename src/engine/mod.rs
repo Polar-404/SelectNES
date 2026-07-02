@@ -3,4 +3,4 @@ pub mod instance;
 pub mod stats;
 pub mod config;
 pub mod state;
-pub mod console;
+pub mod terminal;

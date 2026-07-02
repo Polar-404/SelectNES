@@ -4,7 +4,7 @@
 use serde::Deserialize;
 
 use crate::cpu::opcodes::{self, opcodes_map};
-use crate::engine::console::{LogType, print_logs};
+use crate::engine::terminal::print_terminal::{LogType, print_logs};
 use crate::memory::bus::BUS; 
 use crate::memory::mapper_base::*;
 
@@ -159,7 +159,7 @@ impl CPU {
                 (deref, page_crossed)
             }
             AddressingMode::NoneAddressing => {
-                panic!("Panic at PC: {:04X}, Opcode: {:02X}. Tentou buscar endereço em NoneAddressing.", self.program_counter - 1, self.last_opcode);
+                panic!("Panic at PC: {:04X}, Opcode: {:02X}. Tried to get an address with NoneAddressing Mode", self.program_counter - 1, self.last_opcode);
             }
 
         }

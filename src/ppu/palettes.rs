@@ -2,7 +2,7 @@ use std::{fmt::Display, path::PathBuf};
 
 use serde::{Serialize, Deserialize};
 
-use crate::engine::console::{LogType, print_logs};
+use crate::engine::terminal::print_terminal::{LogType, print_logs};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)] 
 pub struct NESColor {

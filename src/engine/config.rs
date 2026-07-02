@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::PathBuf, sync::atomic::Ordering};
 
 use serde::{Serialize, Deserialize};
-use crate::{engine::console::{LogType, print_logs}, ppu::palettes::*};
+use crate::{engine::terminal::print_terminal::{LogType, print_logs}, ppu::palettes::*};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(default)]
@@ -25,9 +25,9 @@ impl EmulatorConfig {
             }),
             Err(_) => Self::default(),
         };
-        crate::engine::console::LOG_INFO_ENABLED.store(config.terminal_types.0, Ordering::Relaxed);
-        crate::engine::console::LOG_WARNING_ENABLED.store(config.terminal_types.1, Ordering::Relaxed);
-        crate::engine::console::LOG_DEBUG_ENABLED.store(config.terminal_types.2, Ordering::Relaxed);
+        crate::engine::terminal::print_terminal::LOG_INFO_ENABLED.store(config.terminal_types.0, Ordering::Relaxed);
+        crate::engine::terminal::print_terminal::LOG_WARNING_ENABLED.store(config.terminal_types.1, Ordering::Relaxed);
+        crate::engine::terminal::print_terminal::LOG_DEBUG_ENABLED.store(config.terminal_types.2, Ordering::Relaxed);
         
         config
     }

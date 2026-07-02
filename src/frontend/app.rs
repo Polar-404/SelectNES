@@ -13,7 +13,7 @@ use winit::{
 use crate::{
     apu::audio::AudioOutput, 
     engine::{
-        config::EmulatorConfig, console::*, input::*, instance::EmulatorInstance
+        config::EmulatorConfig, terminal::print_terminal::*, input::*, instance::EmulatorInstance
     }, 
     frontend::{
         dock_state::{NesTabViewer, Tab}, 
