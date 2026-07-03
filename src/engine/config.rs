@@ -8,12 +8,13 @@ use crate::{engine::terminal::print_terminal::{LogType, print_logs}, ppu::palett
 pub struct EmulatorConfig {
     pub volume: f32,
     pub hide_overscan: bool,
-    pub terminal_types: (bool, bool, bool),
+    pub terminal_types: (bool, bool, bool, bool),
     pub multiply_resolution: i32,
     pub allow_opposite_directions: bool,
     pub palette: PaletteTheme,
     pub custom_palettes: HashMap<String, Vec<NESColor>>,
     
+    pub terminal_input: String,
 }
 impl EmulatorConfig {
     pub fn load() -> Self {
@@ -52,11 +53,13 @@ impl Default for EmulatorConfig {
         Self {
             volume: 10.0,
             hide_overscan: true,
-            terminal_types: (true, true, false),
+            terminal_types: (true, true, false, true),
             multiply_resolution: 2,
             allow_opposite_directions: true,
             custom_palettes: HashMap::new(),
             palette: PaletteTheme::DefaultNtsc,
+
+            terminal_input: String::new(),
         }
     }
 }

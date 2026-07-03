@@ -1,4 +1,5 @@
 use egui_dock::{TabViewer};
+use mlua::Lua;
 use crate::engine::config::EmulatorConfig;
 use crate::engine::instance::EmulatorInstance;
 
@@ -23,8 +24,9 @@ pub enum Tab {
 
 pub struct NesTabViewer<'a> {
     pub nes_texture: Option<egui::TextureId>,
-    pub emulator: Option<&'a EmulatorInstance>,
+    pub emulator: Option<&'a std::sync::Arc<std::sync::Mutex<EmulatorInstance>>>,
     pub config: &'a mut EmulatorConfig,
+    pub lua: &'a Lua,
 
     pub pattern_viewer: &'a mut pattern_viewer::PatternTableViewer,
     pub nametable_viewer: &'a mut palette_viewer::PaletteViewer,
@@ -89,24 +91,30 @@ impl TabViewer for NesTabViewer<'_> {
                 }
             }
             Tab::CpuViewer => {
-                if let Some(emu) = self.emulator {
-                    render_cpu_viewer(ui, emu);
+                if let Some(emu_arc) = self.emulator {
+                    if let Ok(emu) = emu_arc.lock() {
+                        render_cpu_viewer(ui, &emu);
+                    }
                 } else {
                     ui.label("No Game loaded, insert a ROM to view the CPU");
                 }
                 
             }
             Tab::PpuViewer => {
-                if let Some(emu) = self.emulator {
-                    self.pattern_viewer.render(ui, emu);
-                    self.nametable_viewer.render(ui, emu);
+                if let Some(emu_arc) = self.emulator {
+                    if let Ok(emu) = emu_arc.lock() {
+                        self.pattern_viewer.render(ui, &emu);
+                        self.nametable_viewer.render(ui, &emu);
+                    }
                 } else {
                     ui.label("No loaded ROM");
                 }
             }
             Tab::MemoryEditor => {
-                if let Some(emu) = self.emulator {
-                    MemViewer::render_memory_viewer(ui, emu, 0x00, 0x07FF);
+                if let Some(emu_arc) = self.emulator {
+                    if let Ok(emu) = emu_arc.lock() {
+                        MemViewer::render_memory_viewer(ui, &emu, 0x00, 0x07FF);
+                    }
                 } else {
                     ui.label("No loaded ROM");
                 }
@@ -119,7 +127,7 @@ impl TabViewer for NesTabViewer<'_> {
                 render_settings(self.config, ui);
             }
             Tab::Terminal => {
-                render_terminal(self.config, ui);
+                render_terminal(self.config, ui, self.lua);
             }
         }
     }
