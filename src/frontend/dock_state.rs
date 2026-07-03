@@ -1,11 +1,12 @@
 use egui_dock::{TabViewer};
 use mlua::Lua;
+
 use crate::engine::config::EmulatorConfig;
 use crate::engine::instance::EmulatorInstance;
 
-use crate::frontend::panels::app_terminal::render_terminal;
-use crate::frontend::panels::settings_panel::render_settings;
 use crate::frontend::panels::{
+    app_terminal::render_terminal,
+    settings_panel::render_settings,
     cpu_viewer::render_cpu_viewer,
     memory_viewer::MemViewer,
     ppu_viewer::*,
@@ -84,6 +85,22 @@ impl TabViewer for NesTabViewer<'_> {
                         uv,
                         egui::Color32::WHITE
                     );
+
+                    crate::engine::terminal::lua::lua_auxiliary_functions::get_mouse_pos(
+                        self.lua,
+                        ui.ctx().input(|i| i.pointer.hover_pos()),
+                        image_rect,
+                        self.config.hide_overscan,
+                        ui.input(|i| i.pointer.primary_down())
+                    );
+
+                    crate::engine::terminal::lua::auxiliary_functions::draw_render::render_lua_draws(
+                        self.lua, 
+                        ui, 
+                        image_rect, 
+                        self.config.hide_overscan
+                    );
+                    
                 } else {
                     ui.centered_and_justified(|ui| {
                         ui.label("Waiting to start video system...");
