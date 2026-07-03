@@ -56,7 +56,10 @@ pub fn render_terminal(settings: &mut EmulatorConfig, ui: &mut Ui, lua: &Lua) {
                             LogType::Code => (Color32::LIGHT_GREEN, "[Code]")
                         };
 
-                        ui.label(RichText::new(format!("{} {}", txt_type, &log.log_msg)).color(color));
+                        ui.add(
+                    egui::Label::new(RichText::new(format!("{} {}", txt_type, &log.log_msg)).color(color))
+                            .selectable(true)
+                        );
                     }
                 }
             }

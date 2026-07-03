@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use mlua::prelude::*;
-use crate::engine::{instance::EmulatorInstance, terminal::print_terminal::*};
+use crate::engine::{instance::EmulatorInstance, terminal::{lua::functions, print_terminal::*}};
 
 pub fn lua_api_setup(lua: &Lua, emu: Arc<Mutex<EmulatorInstance>>) -> LuaResult<()> {
 
@@ -8,10 +8,18 @@ pub fn lua_api_setup(lua: &Lua, emu: Arc<Mutex<EmulatorInstance>>) -> LuaResult<
 
     print_palette_lua_op(lua, emu.clone())?;
 
-    peek_mem(lua, emu.clone())?;
+    read_mem(lua, emu.clone())?;
+
+    read_mem_singned(lua, emu.clone())?;
 
     write_mem(lua, emu.clone())?;
 
+    log_code(lua)?;
+
+    monitor_mouse_clickpos(lua)?;
+
+    functions::lua_draw_api::register_draw_api(lua)?;
+    
     Ok(())
 }
 
@@ -44,8 +52,8 @@ fn print_palette_lua_op(lua: &Lua, instance: Arc<Mutex<EmulatorInstance>>) -> Lu
     Ok(())
 }
 
-fn peek_mem(lua: &Lua, instance: Arc<Mutex<EmulatorInstance>>) -> LuaResult<()> {
-    let peek_mem = lua.create_function(move |_, addr: u16| {
+fn read_mem(lua: &Lua, instance: Arc<Mutex<EmulatorInstance>>) -> LuaResult<()> {
+    let read_mem = lua.create_function(move |_, addr: u16| {
 
         let mut val = 0;
 
@@ -58,7 +66,25 @@ fn peek_mem(lua: &Lua, instance: Arc<Mutex<EmulatorInstance>>) -> LuaResult<()> 
         Ok(val)
     })?;
 
-    lua.globals().set("read_mem", peek_mem)?;
+    lua.globals().set("read_mem", read_mem)?;
+    Ok(())
+}
+
+fn read_mem_singned(lua: &Lua, instance: Arc<Mutex<EmulatorInstance>>) -> LuaResult<()> {
+    let read_mem_singned = lua.create_function(move |_, addr: u16| {
+
+        let mut val = 0;
+
+        if let Ok(emulator) = instance.lock() {
+            val = emulator.cpu.bus.peek(addr) as i8;
+
+            print_logs(LogType::Code, format!("0x{:02X}", val));
+        }
+
+        Ok(val)
+    })?;
+    
+    lua.globals().set("read_mem_signed", read_mem_singned)?;
     Ok(())
 }
 
@@ -77,3 +103,27 @@ fn write_mem(lua: &Lua, instance: Arc<Mutex<EmulatorInstance>>) -> LuaResult<()>
     lua.globals().set("write_mem", write_mem)?;
     Ok(())
 }
+
+fn log_code(lua: &Lua) -> LuaResult<()> {
+    let log_code = lua.create_function(|_, message: String| {
+        print_logs(LogType::Code, message);
+        Ok(())
+    })?;
+
+    lua.globals().set("log_code", log_code)?;
+    Ok(())
+}
+
+fn monitor_mouse_clickpos(lua: &Lua) -> LuaResult<()> {
+    let mouse_clicked = lua.create_function(|lua, ()| {
+        let globals = lua.globals();
+        if let Ok(inpt) = globals.get::<mlua::Table>("inpt") {
+            let just_clicked: bool = inpt.get("just_clicked").unwrap_or(false);
+            return Ok(just_clicked);
+        }
+        Ok(false)
+    })?;
+    lua.globals().set("mouse_clicked", mouse_clicked)?;
+    Ok(())
+}
+
