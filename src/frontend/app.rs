@@ -2,6 +2,7 @@ use egui_dock::{DockArea, DockState, Style};
 use egui_glow::EguiGlow;
 use glow::HasContext;
 
+use mlua::Lua;
 use winit::{
     application::ApplicationHandler, 
     event::{ElementState, WindowEvent}, 
@@ -26,7 +27,7 @@ use crate::{
     }
 };
 
-use std::{path::PathBuf, sync::Arc, time::{Duration, Instant}};
+use std::{path::PathBuf, sync::{Arc, Mutex}, time::{Duration, Instant}};
 
 pub struct App {
     window: Option<Arc<Window>>,
@@ -34,7 +35,7 @@ pub struct App {
     egui_glow: Option<EguiGlow>,      // egui rendering
     dock_state: DockState<Tab>,
 
-    nes: Option<EmulatorInstance>,
+    nes: Option<Arc<Mutex<EmulatorInstance>>>,
     nes_texture: Option<NesTexture>,
     rom_path: Option<PathBuf>,
 
@@ -43,6 +44,8 @@ pub struct App {
 
     config: EmulatorConfig,
     instant: Instant,
+
+    lua: Lua,
 }
 impl App {
     pub fn new() -> Self {
@@ -66,6 +69,8 @@ impl App {
 
             config: EmulatorConfig::load(),
             instant: Instant::now(),
+
+            lua: Lua::new(),
         }
     }
 }
@@ -172,17 +177,26 @@ impl ApplicationHandler for App {
                     self.nes_texture = Some(NesTexture::new(gl, egui_glow));
                 }
 
-                if let Some(emu) = &mut self.nes {
+                if let Some(nes_arc) = &mut self.nes {
+                    if let Ok(mut emu) = nes_arc.lock() {
+                        
+                        //TODO: probably optimize this
+                        emu.cpu.bus.ppu.color_palette = self.config.palette.clone();
+                        emu.cpu.bus.apu.volume = self.config.volume / 100.0;
 
-                    //TODO: probably optimize this
-                    emu.cpu.bus.ppu.color_palette = self.config.palette.clone();
-                    emu.cpu.bus.apu.volume = self.config.volume / 100.0;
+                        apply_input(&mut emu.cpu.bus.joypad_1, &self.input_state, &self.config);
 
-                    apply_input(&mut emu.cpu.bus.joypad_1, &self.input_state, &self.config);
+                        emu.run_frame(&mut self.audio);
+                        
+                        let texture = self.nes_texture.as_ref().unwrap();
+                        texture.update(gl, emu.frame_buffer());
+                    }
+                }
 
-                    emu.run_frame(&mut self.audio);
-                    let texture = self.nes_texture.as_ref().unwrap();
-                    texture.update(gl, emu.frame_buffer());
+                if let Ok(on_frame) = self.lua.globals().get::<mlua::Function>("on_frame") {
+                    if let Err(err) = on_frame.call::<()>(()) {
+                        print_logs(LogType::Warning, format!("Erro no script Lua (Frame): {}", err));
+                    }
                 }
 
                 let mut open_rom_requested = false;
@@ -268,6 +282,7 @@ impl ApplicationHandler for App {
                         config: &mut self.config,
                         pattern_viewer: &mut pattern_viewer::PatternTableViewer::new(),
                         nametable_viewer: &mut palette_viewer::PaletteViewer::new(),
+                        lua: &self.lua,
                     });
                 });
 
@@ -276,7 +291,15 @@ impl ApplicationHandler for App {
                         match crate::engine::instance::EmulatorInstance::new(path.clone()) {
                             Ok(emu) => {
                                 self.rom_path = Some(path);
-                                self.nes = Some(emu);
+
+                                let emu_shared = Arc::new(Mutex::new(emu));
+                                self.nes = Some(emu_shared.clone());
+
+                                self.lua = Lua::new();
+
+                                if let Err(err) = crate::engine::terminal::lua::setup_lua_functions::lua_api_setup(&self.lua, emu_shared) {
+                                    print_logs(LogType::Warning, format!("Lua API Setup Error: {}", err));
+                                }
                             }
                             Err(e) => {
                                 print_logs(LogType::Warning, format!("Failed to load ROM: {}", e));
@@ -286,20 +309,30 @@ impl ApplicationHandler for App {
                 }
 
                 if pause_requested {
-                    if let Some(emu) = &mut self.nes {
-                        emu.is_paused = !emu.is_paused;
-                        
+                    if let Some(nes_arc) = &self.nes {
+                        if let Ok(mut emu) = nes_arc.lock() {
+                            emu.is_paused = !emu.is_paused;
+                        }
                     }
                 }
 
                 if reset_requested {
-                    if let Some(_) = &mut self.nes {
-                        match crate::engine::instance::EmulatorInstance::new(self.rom_path.clone().unwrap()) {
-                            Ok(emu) => {
-                                self.nes = Some(emu);
-                            }
-                            Err(e) => {
-                                eprintln!("Failed to load ROM: {}", e);
+                    if self.nes.is_some() {
+                        if let Some(path) = &self.rom_path {
+                            match crate::engine::instance::EmulatorInstance::new(path.clone()) {
+                                Ok(emu) => {
+                                    let emu_shared = std::sync::Arc::new(std::sync::Mutex::new(emu));
+                                    self.nes = Some(emu_shared.clone());
+
+                                    self.lua = mlua::Lua::new();
+
+                                    if let Err(err) = crate::engine::terminal::lua::setup_lua_functions::lua_api_setup(&self.lua, emu_shared) {
+                                        print_logs(LogType::Warning, format!("Lua API Setup Error (Reset): {}", err));
+                                    }
+                                }
+                                Err(e) => {
+                                    print_logs(LogType::Warning, format!("Failed to load ROM during reset: {}", e));
+                                }
                             }
                         }
                     }
