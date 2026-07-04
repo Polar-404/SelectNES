@@ -8,3 +8,4 @@
 *.sav binary
 
 Cargo.lock linguist-generated=true
+*.lua linguist-detectable=true

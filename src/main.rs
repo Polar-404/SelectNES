@@ -6,7 +6,9 @@ use winit::event_loop::EventLoop;
 fn main() {
     std::panic::set_hook(Box::new(|info| {
         let msg = format!("[Error] the program suffered a critical error:\n{}", info);
-        let _ = std::fs::write(".log/crashlog.log", msg);
+        if std::fs::create_dir_all(".log").is_ok() {
+            let _ = std::fs::write(".log/crashlog.log", msg);
+        }
     }));
 
     let event_loop = EventLoop::new().unwrap();

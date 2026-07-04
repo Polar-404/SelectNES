@@ -3,6 +3,7 @@ use std::sync::{Mutex, atomic::{AtomicBool, Ordering}};
 pub static LOG_WARNING_ENABLED: AtomicBool = AtomicBool::new(true);
 pub static LOG_DEBUG_ENABLED: AtomicBool = AtomicBool::new(true);
 pub static LOG_INFO_ENABLED: AtomicBool = AtomicBool::new(true);
+pub static LOG_CODE_INFO_ENABLED: AtomicBool = AtomicBool::new(true);
 
 pub static TERMINAL: Mutex<Vec<LogMessage>> = Mutex::new(Vec::new());
 
@@ -10,6 +11,7 @@ pub enum LogType {
     Warning,
     Debug,
     Info,
+    Code,
 }
 
 pub struct LogMessage {
@@ -17,11 +19,18 @@ pub struct LogMessage {
     pub log_msg: String,
 }
 
+pub struct LuaScript {
+    pub name: String,
+    pub path: std::path::PathBuf,
+    pub on_frame_key: Option<mlua::RegistryKey>, 
+}
+
 pub fn print_logs(log_type: LogType, log_msg: impl Into<String>) {
     let is_enabled = match log_type {
         LogType::Warning => LOG_WARNING_ENABLED.load(Ordering::Relaxed),
         LogType::Debug   => LOG_DEBUG_ENABLED.load(Ordering::Relaxed),
         LogType::Info    => LOG_INFO_ENABLED.load(Ordering::Relaxed),
+        LogType::Code    => LOG_CODE_INFO_ENABLED.load(Ordering::Relaxed),
     };
 
     if !is_enabled { return; }

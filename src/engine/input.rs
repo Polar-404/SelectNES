@@ -15,7 +15,7 @@ pub fn apply_input(joypad: &mut JoyPad, state: &ControllerState, config: &Emulat
     joypad.set_button(JoyPadButtons::SELECT, state.select);
     
     let (left, right, up, down) = if config.allow_opposite_directions {
-        (state.left, state.right, state.up, state.down)  // permite os dois
+        (state.left, state.right, state.up, state.down)
     } else {
         let horiz_conflict = state.left && state.right;
         let vert_conflict = state.up && state.down;
@@ -32,5 +32,4 @@ pub fn apply_input(joypad: &mut JoyPad, state: &ControllerState, config: &Emulat
     joypad.set_button(JoyPadButtons::RIGHT, right);
     joypad.set_button(JoyPadButtons::UP,    up);
     joypad.set_button(JoyPadButtons::DOWN,  down);
-    // mesmo padrão pra Up/Down
 }

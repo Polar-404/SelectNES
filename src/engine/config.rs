@@ -1,19 +1,20 @@
 use std::{collections::HashMap, path::PathBuf, sync::atomic::Ordering};
 
 use serde::{Serialize, Deserialize};
-use crate::{engine::console::{LogType, print_logs}, ppu::palettes::*};
+use crate::{engine::terminal::struct_terminal::{LogType, print_logs}, ppu::palettes::*};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(default)]
 pub struct EmulatorConfig {
     pub volume: f32,
     pub hide_overscan: bool,
-    pub terminal_types: (bool, bool, bool),
+    pub terminal_types: (bool, bool, bool, bool),
     pub multiply_resolution: i32,
     pub allow_opposite_directions: bool,
     pub palette: PaletteTheme,
     pub custom_palettes: HashMap<String, Vec<NESColor>>,
     
+    pub terminal_input: String,
 }
 impl EmulatorConfig {
     pub fn load() -> Self {
@@ -25,9 +26,9 @@ impl EmulatorConfig {
             }),
             Err(_) => Self::default(),
         };
-        crate::engine::console::LOG_INFO_ENABLED.store(config.terminal_types.0, Ordering::Relaxed);
-        crate::engine::console::LOG_WARNING_ENABLED.store(config.terminal_types.1, Ordering::Relaxed);
-        crate::engine::console::LOG_DEBUG_ENABLED.store(config.terminal_types.2, Ordering::Relaxed);
+        crate::engine::terminal::struct_terminal::LOG_INFO_ENABLED.store(config.terminal_types.0, Ordering::Relaxed);
+        crate::engine::terminal::struct_terminal::LOG_WARNING_ENABLED.store(config.terminal_types.1, Ordering::Relaxed);
+        crate::engine::terminal::struct_terminal::LOG_DEBUG_ENABLED.store(config.terminal_types.2, Ordering::Relaxed);
         
         config
     }
@@ -52,11 +53,13 @@ impl Default for EmulatorConfig {
         Self {
             volume: 10.0,
             hide_overscan: true,
-            terminal_types: (true, true, false),
+            terminal_types: (true, true, false, true),
             multiply_resolution: 2,
             allow_opposite_directions: true,
             custom_palettes: HashMap::new(),
             palette: PaletteTheme::DefaultNtsc,
+
+            terminal_input: String::new(),
         }
     }
 }

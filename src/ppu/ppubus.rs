@@ -5,7 +5,7 @@ use std::cell::RefCell;
 
 pub struct PPUBUS {
     //32 byte pallete [16 for backgroudn 16 for foreground]
-    palette_ram: [u8; 0x20],
+    pub palette_ram: [u8; 0x20],
     vram: [u8; 0x0800], 
     pub mapper: Rc<RefCell<dyn Mapper>>, // 2KB VRAM
 }

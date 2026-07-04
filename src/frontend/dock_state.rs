@@ -1,10 +1,15 @@
 use egui_dock::{TabViewer};
-use crate::engine::config::EmulatorConfig;
-use crate::engine::instance::EmulatorInstance;
+use mlua::Lua;
 
-use crate::frontend::panels::app_terminal::render_terminal;
-use crate::frontend::panels::settings_panel::render_settings;
+use crate::engine::{
+    config::EmulatorConfig,
+    instance::EmulatorInstance,
+    terminal::struct_terminal::LuaScript,
+};
+
 use crate::frontend::panels::{
+    app_terminal::render_terminal,
+    settings_panel::render_settings,
     cpu_viewer::render_cpu_viewer,
     memory_viewer::MemViewer,
     ppu_viewer::*,
@@ -23,8 +28,11 @@ pub enum Tab {
 
 pub struct NesTabViewer<'a> {
     pub nes_texture: Option<egui::TextureId>,
-    pub emulator: Option<&'a EmulatorInstance>,
+    pub emulator: Option<&'a std::sync::Arc<std::sync::Mutex<EmulatorInstance>>>,
     pub config: &'a mut EmulatorConfig,
+
+    pub lua: &'a Lua,
+    pub active_scripts: &'a mut Vec<LuaScript>,
 
     pub pattern_viewer: &'a mut pattern_viewer::PatternTableViewer,
     pub nametable_viewer: &'a mut palette_viewer::PaletteViewer,
@@ -82,6 +90,37 @@ impl TabViewer for NesTabViewer<'_> {
                         uv,
                         egui::Color32::WHITE
                     );
+
+                    crate::engine::terminal::lua::auxiliary_functions::mouse_pos::get_mouse_pos(
+                        self.lua,
+                        ui.ctx().input(|i| i.pointer.hover_pos()),
+                        image_rect,
+                        self.config.hide_overscan,
+                        ui.input(|i| i.pointer.primary_down())
+                    );
+
+                    crate::engine::terminal::lua::auxiliary_functions::draw_render::render_lua_draws(
+                        self.lua, 
+                        ui, 
+                        image_rect, 
+                        self.config.hide_overscan
+                    );
+
+                    //running lua script stack on_frame() functions
+                    for script in self.active_scripts.iter() {
+                        if let Some(ref key) = script.on_frame_key {
+                            if let Ok(on_frame_fn) = self.lua.registry_value::<mlua::Function>(key) {
+                                if let Err(e) = on_frame_fn.call::<()>(()) {
+                                    crate::engine::terminal::struct_terminal::print_logs(
+                                        crate::engine::terminal::struct_terminal::LogType::Warning,
+                                        format!("Script Error [{}]: {}", script.name, e)
+                                    );
+                                }
+                            }
+                        }
+
+                    }
+                    
                 } else {
                     ui.centered_and_justified(|ui| {
                         ui.label("Waiting to start video system...");
@@ -89,24 +128,30 @@ impl TabViewer for NesTabViewer<'_> {
                 }
             }
             Tab::CpuViewer => {
-                if let Some(emu) = self.emulator {
-                    render_cpu_viewer(ui, emu);
+                if let Some(emu_arc) = self.emulator {
+                    if let Ok(emu) = emu_arc.lock() {
+                        render_cpu_viewer(ui, &emu);
+                    }
                 } else {
                     ui.label("No Game loaded, insert a ROM to view the CPU");
                 }
                 
             }
             Tab::PpuViewer => {
-                if let Some(emu) = self.emulator {
-                    self.pattern_viewer.render(ui, emu);
-                    self.nametable_viewer.render(ui, emu);
+                if let Some(emu_arc) = self.emulator {
+                    if let Ok(emu) = emu_arc.lock() {
+                        self.pattern_viewer.render(ui, &emu);
+                        self.nametable_viewer.render(ui, &emu);
+                    }
                 } else {
                     ui.label("No loaded ROM");
                 }
             }
             Tab::MemoryEditor => {
-                if let Some(emu) = self.emulator {
-                    MemViewer::render_memory_viewer(ui, emu, 0x00, 0x07FF);
+                if let Some(emu_arc) = self.emulator {
+                    if let Ok(emu) = emu_arc.lock() {
+                        MemViewer::render_memory_viewer(ui, &emu, 0x00, 0x07FF);
+                    }
                 } else {
                     ui.label("No loaded ROM");
                 }
@@ -119,7 +164,7 @@ impl TabViewer for NesTabViewer<'_> {
                 render_settings(self.config, ui);
             }
             Tab::Terminal => {
-                render_terminal(self.config, ui);
+                render_terminal(self.config, ui, self.lua, self.active_scripts);
             }
         }
     }
