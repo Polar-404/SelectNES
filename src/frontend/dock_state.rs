@@ -86,7 +86,7 @@ impl TabViewer for NesTabViewer<'_> {
                         egui::Color32::WHITE
                     );
 
-                    crate::engine::terminal::lua::lua_auxiliary_functions::get_mouse_pos(
+                    crate::engine::terminal::lua::auxiliary_functions::mouse_pos::get_mouse_pos(
                         self.lua,
                         ui.ctx().input(|i| i.pointer.hover_pos()),
                         image_rect,
