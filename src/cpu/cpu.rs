@@ -4,7 +4,7 @@
 use serde::Deserialize;
 
 use crate::cpu::opcodes::{self, opcodes_map};
-use crate::engine::terminal::print_terminal::{LogType, print_logs};
+use crate::engine::terminal::struct_terminal::{LogType, print_logs};
 use crate::memory::bus::BUS; 
 use crate::memory::mapper_base::*;
 

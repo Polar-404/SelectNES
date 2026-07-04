@@ -19,6 +19,12 @@ pub struct LogMessage {
     pub log_msg: String,
 }
 
+pub struct LuaScript {
+    pub name: String,
+    pub path: std::path::PathBuf,
+    pub on_frame_key: Option<mlua::RegistryKey>, 
+}
+
 pub fn print_logs(log_type: LogType, log_msg: impl Into<String>) {
     let is_enabled = match log_type {
         LogType::Warning => LOG_WARNING_ENABLED.load(Ordering::Relaxed),

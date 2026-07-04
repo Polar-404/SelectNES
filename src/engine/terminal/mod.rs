@@ -1,2 +1,2 @@
-pub mod print_terminal;
+pub mod struct_terminal;
 pub mod lua;

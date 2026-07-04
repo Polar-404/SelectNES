@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use mlua::prelude::*;
-use crate::engine::{instance::EmulatorInstance, terminal::print_terminal::*};
+use crate::engine::{instance::EmulatorInstance, terminal::struct_terminal::*};
 
 pub fn set_palette_lua_op(lua: &Lua, instance: Arc<Mutex<EmulatorInstance>>) -> LuaResult<()> {
     let set_palette = lua.create_function(move |_, (index, color): (u8, u8)| {

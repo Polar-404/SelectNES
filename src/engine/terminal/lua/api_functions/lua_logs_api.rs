@@ -1,6 +1,6 @@
 
 use mlua::prelude::*;
-use crate::engine::terminal::print_terminal::*;
+use crate::engine::terminal::struct_terminal::*;
 
 pub fn log_code(lua: &Lua) -> LuaResult<()> {
     let log_code = lua.create_function(|_, message: String| {

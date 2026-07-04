@@ -1,4 +1,4 @@
-use crate::{engine::{config::EmulatorConfig, terminal::print_terminal::{LogType, print_logs}}, ppu::palettes::PaletteTheme};
+use crate::{engine::{config::EmulatorConfig, terminal::struct_terminal::{LogType, print_logs}}, ppu::palettes::PaletteTheme};
 
 pub fn render_settings(settings: &mut EmulatorConfig, ui: &mut egui_dock::egui::Ui) {
     change_palette(settings, ui);

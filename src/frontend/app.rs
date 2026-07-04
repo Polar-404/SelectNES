@@ -14,7 +14,10 @@ use winit::{
 use crate::{
     apu::audio::AudioOutput, 
     engine::{
-        config::EmulatorConfig, terminal::print_terminal::*, input::*, instance::EmulatorInstance
+        config::EmulatorConfig, 
+        terminal::struct_terminal::*, 
+        input::*, 
+        instance::EmulatorInstance
     }, 
     frontend::{
         dock_state::{NesTabViewer, Tab}, 
@@ -46,6 +49,8 @@ pub struct App {
     instant: Instant,
 
     lua: Lua,
+    active_scripts: Vec<LuaScript>,
+
 }
 impl App {
     pub fn new() -> Self {
@@ -71,6 +76,7 @@ impl App {
             instant: Instant::now(),
 
             lua: Lua::new(),
+            active_scripts: Vec::new(),
         }
     }
 }
@@ -193,12 +199,6 @@ impl ApplicationHandler for App {
                     }
                 }
 
-                if let Ok(on_frame) = self.lua.globals().get::<mlua::Function>("on_frame") {
-                    if let Err(err) = on_frame.call::<()>(()) {
-                        print_logs(LogType::Warning, format!("Erro no script Lua (Frame): {}", err));
-                    }
-                }
-
                 let mut open_rom_requested = false;
                 let mut pause_requested = false; 
                 let mut reset_requested = false;
@@ -283,6 +283,7 @@ impl ApplicationHandler for App {
                         pattern_viewer: &mut pattern_viewer::PatternTableViewer::new(),
                         nametable_viewer: &mut palette_viewer::PaletteViewer::new(),
                         lua: &self.lua,
+                        active_scripts: &mut self.active_scripts,
                     });
                 });
 

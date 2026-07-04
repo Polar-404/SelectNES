@@ -16,6 +16,12 @@ pub fn lua_api_setup(lua: &Lua, emu: Arc<Mutex<EmulatorInstance>>) -> LuaResult<
 
     lua_memory_api::write_mem(lua, emu.clone())?;
 
+    lua_memory_api::print_mem(lua, emu.clone())?;
+
+    lua_memory_api::print_mem_singned(lua, emu.clone())?;
+
+    lua_memory_api::write_mem_silent(lua, emu.clone())?;
+
     lua_logs_api::log_code(lua)?;
 
     lua_input_api::monitor_mouse_clickpos(lua)?;

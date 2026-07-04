@@ -2,15 +2,17 @@
 --Written by XKeeper
 --Allows you to use the mouse to pick up enemies and movie them around!
 
+--porting script FCEUX - SelectNES
 memory = {
     readbyte = read_mem,
-    writebyte = write_mem,
+    writebyte = write_mem_silent,
     readbytesigned = function(addr)
         local val = read_mem(addr)
         if not val then return 0 end
         return val > 127 and val - 256 or val
     end
 }
+
 timer = 0
 last = { xmouse = 0, ymouse = 0, leftclick = false }
 input = { 
@@ -121,12 +123,13 @@ end;
 -- ****************************************************************************
 function smbmoveenemy(n, x, y, ax, ay)
 
-	local x1	= math.fmod(x, 0x100);
-	local x2	= math.floor(x / 0x100);
-	local y1	= math.fmod(y, 0x100);
-	local y2	= math.floor(y / 0x100);
-	local ax	= math.max(-128, math.min(ax, 0x7F));
-	local ay	= math.max(-128, math.min(ay, 0x7F));
+	local x1	= math.floor(math.fmod(x, 0x100)) % 256;
+	local x2	= math.floor(x / 0x100) % 256;
+	local y1	= math.floor(math.fmod(y, 0x100)) % 256;
+	local y2	= math.floor(y / 0x100) % 256;
+	
+	local ax	= math.floor(math.max(-128, math.min(ax, 0x7F))) % 256;
+	local ay	= math.floor(math.max(-128, math.min(ay, 0x7F))) % 256;
 
 	memory.writebyte(0x006D + n, x2);
 	memory.writebyte(0x0086 + n, x1);
@@ -135,9 +138,9 @@ function smbmoveenemy(n, x, y, ax, ay)
 	memory.writebyte(0x0057 + n, ax);
 	memory.writebyte(0x009F + n, ay);
 	
-	if ax > 0 then
+	if ax > 0 and ax < 128 then
 		memory.writebyte(0x0045 + n, 1);
-	elseif ax < 0 then
+	else
 		memory.writebyte(0x0045 + n, 2);
 	end;
 

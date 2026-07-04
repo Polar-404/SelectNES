@@ -1,8 +1,11 @@
 use egui_dock::{TabViewer};
 use mlua::Lua;
 
-use crate::engine::config::EmulatorConfig;
-use crate::engine::instance::EmulatorInstance;
+use crate::engine::{
+    config::EmulatorConfig,
+    instance::EmulatorInstance,
+    terminal::struct_terminal::LuaScript,
+};
 
 use crate::frontend::panels::{
     app_terminal::render_terminal,
@@ -27,7 +30,9 @@ pub struct NesTabViewer<'a> {
     pub nes_texture: Option<egui::TextureId>,
     pub emulator: Option<&'a std::sync::Arc<std::sync::Mutex<EmulatorInstance>>>,
     pub config: &'a mut EmulatorConfig,
+
     pub lua: &'a Lua,
+    pub active_scripts: &'a mut Vec<LuaScript>,
 
     pub pattern_viewer: &'a mut pattern_viewer::PatternTableViewer,
     pub nametable_viewer: &'a mut palette_viewer::PaletteViewer,
@@ -100,6 +105,21 @@ impl TabViewer for NesTabViewer<'_> {
                         image_rect, 
                         self.config.hide_overscan
                     );
+
+                    //running lua script stack on_frame() functions
+                    for script in self.active_scripts.iter() {
+                        if let Some(ref key) = script.on_frame_key {
+                            if let Ok(on_frame_fn) = self.lua.registry_value::<mlua::Function>(key) {
+                                if let Err(e) = on_frame_fn.call::<()>(()) {
+                                    crate::engine::terminal::struct_terminal::print_logs(
+                                        crate::engine::terminal::struct_terminal::LogType::Warning,
+                                        format!("Script Error [{}]: {}", script.name, e)
+                                    );
+                                }
+                            }
+                        }
+
+                    }
                     
                 } else {
                     ui.centered_and_justified(|ui| {
@@ -144,7 +164,7 @@ impl TabViewer for NesTabViewer<'_> {
                 render_settings(self.config, ui);
             }
             Tab::Terminal => {
-                render_terminal(self.config, ui, self.lua);
+                render_terminal(self.config, ui, self.lua, self.active_scripts);
             }
         }
     }

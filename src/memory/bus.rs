@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::engine::terminal::print_terminal::{self, LogType};
+use crate::engine::terminal::struct_terminal::{self, LogType};
 use crate::memory::{mappers, mapper_base::*};
 
 use crate::{
@@ -298,19 +298,19 @@ pub fn load_rom_from_file(path: &Path) -> Result<Rc<RefCell<dyn Mapper>>, Box<dy
     let has_trainer = (header[6] & 0b0000_0100) != 0;
 
     if header[0..4] != NES_SIGNATURE {
-        print_terminal::print_logs(
+        struct_terminal::print_logs(
             LogType::Warning, 
             format!("THE ROM HEADER DOESN'T HAVE A NES SIGNATURE, THIS ROM MIGHT BE INVALID")
         );
     }
 
-    print_terminal::print_logs(LogType::Info, format!("--- ROM HEADER INFO ---"));
-    print_terminal::print_logs(LogType::Info, format!("Byte 4 (PRG Banks): {}", rom_data[4]));
-    print_terminal::print_logs(LogType::Info, format!("Byte 5 (CHR Banks): {}", rom_data[5]));
-    print_terminal::print_logs(LogType::Info, format!("Byte 6 (Flags 6)  : {:08b}", rom_data[6]));
-    print_terminal::print_logs(LogType::Info, format!("Byte 7 (Flags 7)  : {:08b}", rom_data[7]));
-    print_terminal::print_logs(LogType::Info, format!("Mapper ID -> {}", mapper_match));
-    print_terminal::print_logs(LogType::Info, format!("Has Trainer -> {}", has_trainer));
+    struct_terminal::print_logs(LogType::Info, format!("--- ROM HEADER INFO ---"));
+    struct_terminal::print_logs(LogType::Info, format!("Byte 4 (PRG Banks): {}", rom_data[4]));
+    struct_terminal::print_logs(LogType::Info, format!("Byte 5 (CHR Banks): {}", rom_data[5]));
+    struct_terminal::print_logs(LogType::Info, format!("Byte 6 (Flags 6)  : {:08b}", rom_data[6]));
+    struct_terminal::print_logs(LogType::Info, format!("Byte 7 (Flags 7)  : {:08b}", rom_data[7]));
+    struct_terminal::print_logs(LogType::Info, format!("Mapper ID -> {}", mapper_match));
+    struct_terminal::print_logs(LogType::Info, format!("Has Trainer -> {}", has_trainer));
     
     // the size of the PRG ROM may be 16kb or 32kb, 
     //that info is at byte 4 as [1 if 16kb and 2 if 32kb]
