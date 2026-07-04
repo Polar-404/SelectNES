@@ -36,7 +36,7 @@ fn test_nestest_execution() {
             }
         }
 
-        if let Ok(logs) = nes_emulator::engine::console::TERMINAL.lock() {
+        if let Ok(logs) = nes_emulator::engine::terminal::struct_terminal::TERMINAL.lock() {
             for log in logs.iter() {
                 println!("{:?}", log.log_msg);
             }
