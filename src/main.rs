@@ -1,6 +1,6 @@
 #![windows_subsystem = "windows"]
 
-use nes_emulator::frontend::app::App;
+use selectnes::frontend::app::App;
 use winit::event_loop::EventLoop;
 
 fn main() {

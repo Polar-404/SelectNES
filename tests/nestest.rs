@@ -1,9 +1,11 @@
+#[cfg(feature = "debug_log")]
 use std::io::BufRead;
 
-use nes_emulator::engine::instance::EmulatorInstance;
+#[cfg(feature = "debug_log")]
+use selectnes::engine::instance::EmulatorInstance;
 
 #[cfg(feature = "debug_log")]
-use nes_emulator::debug::cpu_debug::log_state_nestest;
+use selectnes::debug::cpu_debug::log_state_nestest;
 
 #[test]
 fn test_nestest_execution() {

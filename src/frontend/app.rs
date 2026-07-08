@@ -30,7 +30,11 @@ use crate::{
     }
 };
 
-use std::{path::PathBuf, sync::{Arc, Mutex}, time::{Duration, Instant}};
+use std::{
+    panic::{AssertUnwindSafe, catch_unwind}, 
+    path::PathBuf, sync::{Arc, Mutex}, 
+    time::{Duration, Instant}
+};
 
 pub struct App {
     window: Option<Arc<Window>>,
@@ -183,20 +187,29 @@ impl ApplicationHandler for App {
                     self.nes_texture = Some(NesTexture::new(gl, egui_glow));
                 }
 
+                let mut engine_crashed: bool = false;
+
                 if let Some(nes_arc) = &mut self.nes {
-                    if let Ok(mut emu) = nes_arc.lock() {
+                    let result = catch_unwind(AssertUnwindSafe(|| {
+                        if let Ok(mut emu) = nes_arc.lock() {
                         
-                        //TODO: probably optimize this
-                        emu.cpu.bus.ppu.color_palette = self.config.palette.clone();
-                        emu.cpu.bus.apu.volume = self.config.volume / 100.0;
+                            //TODO: probably optimize this
+                            emu.cpu.bus.ppu.color_palette = self.config.palette.clone();
+                            emu.cpu.bus.apu.volume = self.config.volume / 100.0;
 
-                        apply_input(&mut emu.cpu.bus.joypad_1, &self.input_state, &self.config);
+                            apply_input(&mut emu.cpu.bus.joypad_1, &self.input_state, &self.config);
 
-                        emu.run_frame(&mut self.audio);
-                        
-                        let texture = self.nes_texture.as_ref().unwrap();
-                        texture.update(gl, emu.frame_buffer());
+                            emu.run_frame(&mut self.audio);
+                            
+                            let texture = self.nes_texture.as_ref().unwrap();
+                            texture.update(gl, emu.frame_buffer());
+                        }
+                    }));
+
+                    if result.is_err() {
+                        engine_crashed = true
                     }
+
                 }
 
                 let mut open_rom_requested = false;
@@ -286,6 +299,14 @@ impl ApplicationHandler for App {
                         active_scripts: &mut self.active_scripts,
                     });
                 });
+
+                if engine_crashed {
+                    print_logs(
+                        LogType::Warning, 
+                        "⚠️THE NES ENGINE SUFFERED A CRITICAL FAILIURE. RESTARTING GAME..."
+                    );
+                    reset_requested = true;
+                }
 
                 if open_rom_requested {
                     if let Some(path) = crate::frontend::panels::open_rom::open_rom_dialog() {
