@@ -11,7 +11,7 @@ use selectnes::debug::cpu_debug::log_state_nestest;
 fn test_nestest_execution() {
     #[cfg(feature = "debug_log")]
     {
-        use nes_emulator::apu::audio::AudioOutput;
+        use selectnes::apu::audio::AudioOutput;
 
         let mut emulator = EmulatorInstance::new(std::path::PathBuf::from("tests/nestest/nestest.nes"))
             .unwrap_or_else(|_| panic!("couldn't start the emulator, nestest.nes might have been moved"));
@@ -38,7 +38,7 @@ fn test_nestest_execution() {
             }
         }
 
-        if let Ok(logs) = nes_emulator::engine::terminal::struct_terminal::TERMINAL.lock() {
+        if let Ok(logs) = selectnes::engine::terminal::struct_terminal::TERMINAL.lock() {
             for log in logs.iter() {
                 println!("{:?}", log.log_msg);
             }

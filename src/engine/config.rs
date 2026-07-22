@@ -21,14 +21,18 @@ impl EmulatorConfig {
         let path = Self::get_config_path();
         let config = match std::fs::read_to_string(&path) {
             Ok(content) => serde_json::from_str(&content).unwrap_or_else(|e| {
-                eprintln!("[WARNING] Structural failiure at the config.json file, ({}). Will re-write using default configs", e);
+                print_logs(LogType::Warning, format!(
+                    "[WARNING] Structural failiure at the config.json file, ({}). Will re-write using default configs", 
+                    e
+                ));
                 Self::default()
             }),
             Err(_) => Self::default(),
         };
-        crate::engine::terminal::struct_terminal::LOG_INFO_ENABLED.store(config.terminal_types.0, Ordering::Relaxed);
-        crate::engine::terminal::struct_terminal::LOG_WARNING_ENABLED.store(config.terminal_types.1, Ordering::Relaxed);
-        crate::engine::terminal::struct_terminal::LOG_DEBUG_ENABLED.store(config.terminal_types.2, Ordering::Relaxed);
+        crate::engine::terminal::struct_terminal::LOG_INFO_ENABLED      .store(config.terminal_types.0, Ordering::Relaxed);
+        crate::engine::terminal::struct_terminal::LOG_WARNING_ENABLED   .store(config.terminal_types.1, Ordering::Relaxed);
+        crate::engine::terminal::struct_terminal::LOG_CODE_ENABLED      .store(config.terminal_types.2, Ordering::Relaxed);
+        crate::engine::terminal::struct_terminal::LOG_DEBUG_ENABLED     .store(config.terminal_types.3, Ordering::Relaxed);
         
         config
     }

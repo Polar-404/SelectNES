@@ -38,7 +38,7 @@ fn render_top_bar(ui: &mut Ui, settings: &mut EmulatorConfig) {
             crate::engine::terminal::struct_terminal::LOG_WARNING_ENABLED.store(*show_warning, Ordering::Relaxed);
         }
         if ui.checkbox(show_code, "Code").changed() {
-            crate::engine::terminal::struct_terminal::LOG_CODE_INFO_ENABLED.store(*show_code, Ordering::Relaxed);
+            crate::engine::terminal::struct_terminal::LOG_CODE_ENABLED.store(*show_code, Ordering::Relaxed);
         }
         if ui.checkbox(show_debug, "Debug").changed() {
             crate::engine::terminal::struct_terminal::LOG_DEBUG_ENABLED.store(*show_debug, Ordering::Relaxed);

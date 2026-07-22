@@ -1,7 +1,7 @@
 #![windows_subsystem = "windows"]
 
 use selectnes::frontend::app::App;
-use winit::event_loop::EventLoop;
+use winit::{event_loop::EventLoop};
 
 fn main() {
     std::panic::set_hook(Box::new(|info| {
