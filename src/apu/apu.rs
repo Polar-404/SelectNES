@@ -102,7 +102,8 @@ impl APU {
         self.triangle.step();
     }
     
-    pub fn tick(&mut self, cycles: u8, sample_rate: u32, fullness: f64) -> Option<f32> {
+    pub fn tick<F>(&mut self, cycles: u8, sample_rate: u32, fullness: f64, mut push_sample: F)
+    where F: FnMut(f32) {
         self.cycles_since_sample += cycles as f64;
 
         let rate_adjustment = if fullness < 0.4 {
@@ -115,11 +116,10 @@ impl APU {
 
         let cycles_per_sample = (CPU_FREQ / sample_rate as f64) * rate_adjustment;
 
-        if self.cycles_since_sample >= cycles_per_sample {
+        while self.cycles_since_sample >= cycles_per_sample {
             self.cycles_since_sample -= cycles_per_sample;
-            return Some(self.get_sample());
+            push_sample(self.get_sample());
         }
-        None
     }
 
 

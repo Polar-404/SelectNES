@@ -1,7 +1,7 @@
 use mlua::prelude::*;
 
 pub fn register_draw_api(lua: &Lua) -> LuaResult<()> {
-    let draw_box = lua.create_function(|lua, (x1, y1, x2, y2, color): (i32, i32, i32, i32, String)| {
+    let draw_box = lua.create_function(|lua, (x1, y1, x2, y2, _color): (i32, i32, i32, i32, String)| {
         let globals = lua.globals();
         let commands: mlua::Table = globals.get("_draw_commands").unwrap_or_else(|_| {
             let t = lua.create_table().unwrap();
@@ -91,8 +91,8 @@ pub fn register_draw_api(lua: &Lua) -> LuaResult<()> {
     lua.globals().set("box", &draw_box)?;
     lua.globals().set("text", &draw_text)?;
 
-    lua.globals().set("line", draw_line)?;
-    lua.globals().set("pixel", draw_pixel)?;
+    lua.globals().set("line", &draw_line)?;
+    lua.globals().set("pixel", &draw_pixel)?;
 
     Ok(())
 }

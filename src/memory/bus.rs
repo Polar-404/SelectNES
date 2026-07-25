@@ -219,9 +219,9 @@ impl BUS {
         let len = audio.0.producer.occupied_len() as f64;
         let fullness = len / capacity;
 
-        if let Some(sample) = self.apu.tick(cycles, audio.1, fullness) {
+        self.apu.tick(cycles, audio.1, fullness, |sample: f32| {
             let _ = audio.0.producer.try_push(sample);
-        }
+        });
     }
     
     //pub fn load(&mut self, program: Vec<u8>) {

@@ -68,7 +68,7 @@ impl App {
             nes_texture: None,
             rom_path: None,
 
-            audio: AudioOutput::new(44100),
+            audio: AudioOutput::new(),
             input_state: ControllerState {
                 a: false, b: false,
                 up: false, down: false,
@@ -130,14 +130,14 @@ impl ApplicationHandler for App {
                 let is_pressed = event.state == ElementState::Pressed;
                 
                 match keycode {
-                    KeyCode::KeyZ => self.input_state.a = is_pressed,
-                    KeyCode::KeyX => self.input_state.b = is_pressed,
-                    KeyCode::KeyC => self.input_state.start = is_pressed,
-                    KeyCode::KeyV => self.input_state.select = is_pressed,
-                    KeyCode::ArrowUp => self.input_state.up = is_pressed,
-                    KeyCode::ArrowDown => self.input_state.down = is_pressed,
-                    KeyCode::ArrowLeft => self.input_state.left = is_pressed,
-                    KeyCode::ArrowRight => self.input_state.right = is_pressed,
+                    KeyCode::KeyZ       => self.input_state.a       = is_pressed,
+                    KeyCode::KeyX       => self.input_state.b       = is_pressed,
+                    KeyCode::KeyC       => self.input_state.start   = is_pressed,
+                    KeyCode::KeyV       => self.input_state.select  = is_pressed,
+                    KeyCode::ArrowUp    => self.input_state.up      = is_pressed,
+                    KeyCode::ArrowDown  => self.input_state.down    = is_pressed,
+                    KeyCode::ArrowLeft  => self.input_state.left    = is_pressed,
+                    KeyCode::ArrowRight => self.input_state.right   = is_pressed,
                     _ => {}
                 }
             }

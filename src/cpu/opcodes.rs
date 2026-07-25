@@ -10,7 +10,7 @@ use std::{collections::HashMap, sync::{Arc, OnceLock}};
 
 pub struct OpCode {
     pub code: u8,
-    pub mnemonic: String,
+    pub _mnemonic: String,
     pub len:u8,
     pub cycles: u8,
     pub mode: AddressingMode,
@@ -19,7 +19,7 @@ impl OpCode {
     fn new(code: u8, mnemonic: String, len: u8, cycles: u8, mode: AddressingMode) -> Self{
         OpCode {
             code: code,
-            mnemonic: mnemonic,
+            _mnemonic: mnemonic,
             len: len,
             cycles: cycles,
             mode: mode,

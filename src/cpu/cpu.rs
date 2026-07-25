@@ -981,6 +981,15 @@ impl CPU {
         
         let mut opcycles = opcode.cycles;
 
+        let mut interrupt_cycles: u8 = 0;
+
+        if self.bus.mapper.borrow_mut().irq_pending() 
+            && !self.status.contains(CpuFlags::INTERRUPT_DISABLE) 
+        {
+            self.trigger_cpu_irq();
+            interrupt_cycles += 7;
+        }
+
         let mut is_2002_read = false;
         if opcode.len == 3 && (self.last_opcode == 0x2C || self.last_opcode == 0xAD) {
             let lo = self.bus.mem_read(self.program_counter);
@@ -990,10 +999,6 @@ impl CPU {
             if addr == 0x2002 {
                 is_2002_read = true;
             }
-        }
-
-        if is_2002_read {
-            self.bus.tick(opcycles);
         }
 
         match self.last_opcode {
@@ -1222,13 +1227,16 @@ impl CPU {
             }
         }
 
-        if !is_2002_read {
-            self.bus.tick(opcycles); 
-        } else {
-            let extra_cycles = opcycles - opcode.cycles;
+        if is_2002_read {
+            self.bus.tick(opcode.cycles);
+
+            let extra_cycles = opcycles.saturating_sub(opcode.cycles);
+
             if extra_cycles > 0 {
                 self.bus.tick(extra_cycles);
             }
+        } else {
+            self.bus.tick(opcycles);
         }
 
         self.cycles += opcycles as u64;
@@ -1237,7 +1245,8 @@ impl CPU {
         if program_counter_state == self.program_counter {
             self.program_counter += (opcode.len -1) as u16;
         }
-        (false, opcycles)
+        
+        (false, opcycles + interrupt_cycles)
     }
 
     pub fn format_cpu_status(status: u8) -> String {

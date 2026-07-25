@@ -7,7 +7,7 @@ pub struct AudioOutput {
 }
 
 impl AudioOutput {
-    pub fn new(sample_rate: u32) -> Option<(Self, u32)> {
+    pub fn new() -> Option<(Self, u32)> {
         let host = cpal::default_host();
         let device = if let Some(d) = host.default_output_device() {
             d
@@ -23,14 +23,17 @@ impl AudioOutput {
             return None
         };
 
+        let _sample_rate= config.sample_rate().0;
         let rb = HeapRb::<f32>::new(4016);
         let (producer, mut consumer) = rb.split();
+        let mut last_sample: f32 = 0.0;
 
         let stream = if let Ok(s) = device.build_output_stream(
             &config.into(), 
             move |data: &mut [f32], _| {
                 for frame in data.chunks_mut(2) {
-                    let sample = consumer.try_pop().unwrap_or(0.0);
+                    let sample = consumer.try_pop().unwrap_or(last_sample);
+                    last_sample = sample;
                     frame[0] = sample;
                     frame[1] = sample;
                 }
@@ -47,9 +50,14 @@ impl AudioOutput {
             return None
         }
 
-        Some((AudioOutput {
-            producer,
-            _stream: stream
-        }, sample_rate))
+        Some(
+            (
+                AudioOutput {
+                    producer,
+                    _stream: stream
+                }, 
+                _sample_rate
+            )
+        )
     }
 }

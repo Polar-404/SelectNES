@@ -21,6 +21,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 rfd = "0.17.2"
 serde_json = "1.0.149"
 mlua = { version = "0.10", features = ["lua54", "vendored"] }
+chrono = "0.4.45"
 
 [build-dependencies]
 winres = "0.1"
