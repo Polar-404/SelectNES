@@ -15,7 +15,7 @@ fn test_nestest_execution() {
 
         let mut emulator = EmulatorInstance::new(std::path::PathBuf::from("tests/nestest/nestest.nes"))
             .unwrap_or_else(|_| panic!("couldn't start the emulator, nestest.nes might have been moved"));
-        let mut audio  = AudioOutput::new(44100);
+        let mut audio  = AudioOutput::new();
         
         let mut logger = log_state_nestest(
             Some("tests/nestest_output.log"), 
